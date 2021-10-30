@@ -66,7 +66,7 @@ void Tick_PWM() {
 			PWM_State = PWM_NoButton;
 			break;
 		case PWM_NoButton:
-			tempA = PINA & 0x07;
+			tempA = ((~PINA) & 0x07);
 			if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
 			{
 				if (tempA == 0x01)
@@ -93,7 +93,7 @@ void Tick_PWM() {
 			}
 			break;
 		case PWM_OneButton:
-			tempA = PINA & 0x07;
+			tempA = ((~PINA) & 0x07);
 			if (tempA == 0x00)
 			{
 				PWM_State = PWM_NoButton;
@@ -120,7 +120,7 @@ void Tick_PWM() {
 			}
 			break;
 		case PWM_MoreButtons:
-			tempA = PINA & 0x07;
+			tempA = ((~PINA) & 0x07);
 			if (tempA == 0x00)
 			{
 				PWM_State = PWM_NoButton;

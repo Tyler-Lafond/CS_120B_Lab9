@@ -17,8 +17,9 @@ double frequency;
 unsigned char pos = 0;
 double notes[8] = { 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25 };
 
+enum Toggle_States { Toggle_SMStart, Toggle_OffUnpress, Toggle_OnPress, Toggle_OnUnpress, Toggle_OffPress } Toggle_State;
 
-enum PWM_States { Toggle_SMStart, Toggle_OffUnpress, Toggle_On, Toggle_OffPress } Toggle_State;
+enum Scale_States { Scale_SMStart, Scale_Neutral, Scale_Change } Scale_State;
 
 // 0.954 hz is lowest frequency possible with this function,
 // based on settings in PWM_on()
