@@ -1,7 +1,7 @@
 /*	Author: tlafo001
  *  Partner(s) Name: 
  *	Lab Section: 022
- *	Assignment: Lab # 9  Exercise # 1
+ *	Assignment: Lab # 9  Exercise # 3
  *	Exercise Description: [optional - include for your own benefit]
  *
  *	I acknowledge all content contained herein, excluding template or example
@@ -14,9 +14,12 @@
 #endif
 
 double frequency;
-unsigned char tempA;
+unsigned char i;
+unsigned char pos = 0;
+double melody[12] = { 261.63, 293.66, 329.63, 349.23, 392.00, 0, 440.00, 493.88, 523.25 };
+unsigned char space[12] = { 5, 4, 2, 2, 6, 10, 2, 2, 2, 4, 4, 7 };
 
-enum PWM_States { PWM_SMStart, PWM_NoButton, PWM_OneButton, PWM_MoreButtons } PWM_State;
+enum PWM_States { PWM_SMStart, PWM_OffUnpress, PWM_Melody, PWM_OffPress } PWM_State;
 
 // 0.954 hz is lowest frequency possible with this function,
 // based on settings in PWM_on()
@@ -63,87 +66,54 @@ void Tick_PWM() {
 	switch(PWM_State) {
 		case PWM_SMStart:
 			set_PWM(0);
-			PWM_State = PWM_NoButton;
+			PWM_State = PWM_OffUnpress;
 			break;
-		case PWM_NoButton:
-			tempA = ((~PINA) & 0x07);
-			if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
+		case PWM_OffUnpress:
+			if ((PINA & 0x01) == 0x00)
 			{
-				if (tempA == 0x01)
-				{
-					frequency = 261.63;
-				}
-				else if (tempA == 0x02)
-				{
-					frequency = 293.66;
-				}
-				else if (tempA == 0x04)
-				{
-					frequency = 329.63;
-				}
-				PWM_State = PWM_OneButton;
+				pos = 0;
+				i = 0;
+				PWM_State = PWM_Melody;
 			}
-			else if (tempA)
+			else if ((PINA & 0x01) == 0x01)
 			{
-				PWM_State = PWM_MoreButtons;
-			}
-			else if (tempA == 0x00)
-			{
-				PWM_State = PWM_NoButton;
+				PWM_State = PWM_OffUnpress;
 			}
 			break;
-		case PWM_OneButton:
-			tempA = ((~PINA) & 0x07);
-			if (tempA == 0x00)
+		case PWM_Melody:
+			if ((pos == 11) && (i == space[pos]))
 			{
-				PWM_State = PWM_NoButton;
+				if ((PINA & 0x01) == 0x01)
+				{
+					PWM_State = PWM_OffUnpress;
+				}
+				else if ((PINA & 0x01) == 0x00)
+				{
+					PWM_State = PWM_OffPress;
+				}
 			}
-			else if (!(tempA == 0x01 || tempA == 0x02 || tempA == 0x04))
+			else if (i == space[pos])
 			{
-				PWM_State = PWM_MoreButtons;
+				i = 0;
+				pos++;
+				frequency = melody[pos];
+				PWM_State = PWM_Melody;
 			}
-			else if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
+			else if (i < space[pos])
 			{
-				if (tempA == 0x01)
-				{
-					frequency = 261.63;
-				}
-				else if (tempA == 0x02)
-				{
-					frequency = 293.66;
-				}
-				else if (tempA == 0x04)
-				{
-					frequency = 329.63;
-				}
-				PWM_State = PWM_OneButton;
+				i++;
+				frequency = melody[pos];
+				PWM_State = PWM_Melody;
 			}
 			break;
-		case PWM_MoreButtons:
-			tempA = ((~PINA) & 0x07);
-			if (tempA == 0x00)
+		case PWM_OffPress:
+			if ((PINA & 0x01) == 0x01)
 			{
-				PWM_State = PWM_NoButton;
+				PWM_State = PWM_OffUnpress;
 			}
-			else if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
+			else if ((PINA & 0x01) == 0x00)
 			{
-				if (tempA == 0x01)
-				{
-					frequency = 261.63;
-				}
-				else if (tempA == 0x02)
-				{
-					frequency = 293.66;
-				}
-				else if (tempA == 0x04)
-				{
-					frequency = 329.63;
-				}
-				PWM_State = PWM_OneButton;
-			}
-			else if (!(tempA == 0x01 || tempA == 0x02 || tempA == 0x04))
-			{
-				PWM_State = PWM_MoreButtons;
+				PWM_State = PWM_OffPress;
 			}
 			break;
 		default:
@@ -152,13 +122,13 @@ void Tick_PWM() {
 	}
 
 	switch(PWM_State) {
-		case PWM_NoButton:
+		case PWM_OffUnpress:
 			set_PWM(0);
 			break;
-		case PWM_OneButton:
+		case PWM_Melody:
 			set_PWM(frequency);
 			break;
-		case PWM_MoreButtons:
+		case Toggle_OffPress:
 			set_PWM(0);
 			break;
 		default:
@@ -172,8 +142,8 @@ int main(void) {
 	DDRB = 0xFF; PORTB = 0x00;
     /* Insert your solution below */
 	TimerSet(100);
-	TimerOn();
 	PWM_on();
+	TimerOn();
 	PWM_State = PWM_SMStart;
 
     while (1) {
