@@ -17,7 +17,7 @@ double frequency;
 unsigned char i;
 unsigned char pos = 0;
 double melody[12] = { 329.63, 261.63, 392.00, 440.00, 523.25, 0, 329.63, 293.66, 349.23, 440.00, 523.25, 392.00 };
-unsigned char space[12] = { 50, 40, 20, 20, 60, 100, 20, 20, 20, 40, 40, 70 };
+unsigned char space[12] = { 5, 4, 2, 2, 6, 10, 2, 2, 2, 4, 4, 7 };
 
 enum PWM_States { PWM_SMStart, PWM_OffUnpress, PWM_Melody, PWM_OffPress } PWM_State;
 
