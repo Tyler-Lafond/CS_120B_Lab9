@@ -1,7 +1,7 @@
 /*	Author: tlafo001
  *  Partner(s) Name: 
  *	Lab Section: 022
- *	Assignment: Lab # 9  Exercise # 1
+ *	Assignment: Lab # 9  Exercise # 2
  *	Exercise Description: [optional - include for your own benefit]
  *
  *	I acknowledge all content contained herein, excluding template or example
@@ -14,9 +14,12 @@
 #endif
 
 double frequency;
-unsigned char tempA;
+unsigned char pos = 0;
+double notes[8] = { 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25 };
 
-enum PWM_States { PWM_SMStart, PWM_NoButton, PWM_OneButton, PWM_MoreButtons } PWM_State;
+enum Toggle_States { Toggle_SMStart, Toggle_OffUnpress, Toggle_OnPress, Toggle_OnUnpress, Toggle_OffPress } Toggle_State;
+
+enum Scale_States { Scale_SMStart, Scale_Neutral, Scale_Change } Scale_State;
 
 // 0.954 hz is lowest frequency possible with this function,
 // based on settings in PWM_on()
@@ -59,107 +62,123 @@ void PWM_off() {
 	TCCR3B = 0x00;
 }
 
-void Tick_PWM() {
-	switch(PWM_State) {
-		case PWM_SMStart:
+void Tick_Toggle() {
+	switch(Toggle_State) {
+		case Toggle_SMStart:
 			set_PWM(0);
-			PWM_State = PWM_NoButton;
+			Toggle_State = Toggle_OffUnpress;
 			break;
-		case PWM_NoButton:
-			tempA = ((~PINA) & 0x07);
-			if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
+		case Toggle_OffUnpress:
+			if ((PINA & 0x01) == 0x00)
 			{
-				if (tempA == 0x01)
-				{
-					frequency = 261.63;
-				}
-				else if (tempA == 0x02)
-				{
-					frequency = 293.66;
-				}
-				else if (tempA == 0x04)
-				{
-					frequency = 329.63;
-				}
-				PWM_State = PWM_OneButton;
+				Toggle_State = Toggle_OnPress;
 			}
-			else if (tempA)
+			else if ((PINA & 0x01) == 1)
 			{
-				PWM_State = PWM_MoreButtons;
-			}
-			else if (tempA == 0x00)
-			{
-				PWM_State = PWM_NoButton;
+				Toggle_State = Toggle_OffUnpress;
 			}
 			break;
-		case PWM_OneButton:
-			tempA = ((~PINA) & 0x07);
-			if (tempA == 0x00)
+		case Toggle_OnPress:
+			if ((PINA & 0x01) == 0x01)
 			{
-				PWM_State = PWM_NoButton;
+				Toggle_State = Toggle_OnUnpress;
 			}
-			else if (!(tempA == 0x01 || tempA == 0x02 || tempA == 0x04))
+			else if ((PINA & 0x01) == 0x00)
 			{
-				PWM_State = PWM_MoreButtons;
-			}
-			else if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
-			{
-				if (tempA == 0x01)
-				{
-					frequency = 261.63;
-				}
-				else if (tempA == 0x02)
-				{
-					frequency = 293.66;
-				}
-				else if (tempA == 0x04)
-				{
-					frequency = 329.63;
-				}
-				PWM_State = PWM_OneButton;
+				Toggle_State = Toggle_OnPress;
 			}
 			break;
-		case PWM_MoreButtons:
-			tempA = ((~PINA) & 0x07);
-			if (tempA == 0x00)
+		case Toggle_OnUnpress:
+			if ((PINA & 0x01) == 0x00)
 			{
-				PWM_State = PWM_NoButton;
+				Toggle_State = Toggle_OffPress;
 			}
-			else if (tempA == 0x01 || tempA == 0x02 || tempA == 0x04)
+			else if ((PINA & 0x01) == 0x01)
 			{
-				if (tempA == 0x01)
-				{
-					frequency = 261.63;
-				}
-				else if (tempA == 0x02)
-				{
-					frequency = 293.66;
-				}
-				else if (tempA == 0x04)
-				{
-					frequency = 329.63;
-				}
-				PWM_State = PWM_OneButton;
+				Toggle_State = Toggle_OnUnpress;
 			}
-			else if (!(tempA == 0x01 || tempA == 0x02 || tempA == 0x04))
+			break;
+		case Toggle_OffPress:
+			if ((PINA & 0x01) == 0x01)
 			{
-				PWM_State = PWM_MoreButtons;
+				Toggle_State = Toggle_OffUnpress;
+			}
+			else if ((PINA & 0x01) == 0x00)
+			{
+				Toggle_State = Toggle_OffPress;
 			}
 			break;
 		default:
-			PWM_State = PWM_SMStart;
+			Toggle_State = Toggle_SMStart;
 			break;
 	}
 
-	switch(PWM_State) {
-		case PWM_NoButton:
+	switch(Toggle_State) {
+		case Toggle_OffUnpress:
 			set_PWM(0);
 			break;
-		case PWM_OneButton:
+		case Toggle_OnPress:
 			set_PWM(frequency);
 			break;
-		case PWM_MoreButtons:
+		case Toggle_OnUnpress:
+			set_PWM(frequency);
+			break;
+		case Toggle_OffPress:
 			set_PWM(0);
+			break;
+		default:
+			break;
+	}
+}
+void Tick_Scale() {
+	switch(Scale_State) {
+		case Scale_SMStart:
+			frequency = notes[pos];
+			Scale_State = Scale_Neutral;
+			break;
+		case Scale_Neutral:
+			if ((PINA & 0x06) == 0x04)
+			{
+				if (pos > 0)
+				{
+					pos--;;
+				}
+				frequency = notes[pos];
+				Scale_State = Scale_Change;
+			}
+			else if ((PINA & 0x06) == 0x02)
+			{
+				if (pos < 7)
+				{
+					pos++;
+				}
+				frequency = notes[pos];
+				Scale_State = Scale_Change;
+			}
+			else if (((PINA & 0x06) == 0x00) || ((PINA & 0x06) == 0x06))
+			{
+				Scale_State = Scale_Neutral;
+			}
+			break;
+		case Scale_Change:
+			if ((PINA & 0x06) == 0x06)
+			{
+				Scale_State = Scale_Neutral;
+			}
+			else if (!((PINA & 0x06) == 0x06))
+			{
+				Scale_State = Scale_Change;
+			}
+			break;
+		default:
+			Scale_State = Scale_SMStart;
+			break;
+	}
+
+	switch(Scale_State) {
+		case Scale_Neutral:
+			break;
+		case Scale_Change:
 			break;
 		default:
 			break;
@@ -172,12 +191,14 @@ int main(void) {
 	DDRB = 0xFF; PORTB = 0x00;
     /* Insert your solution below */
 //	TimerSet(100);
-//	TimerOn();
 	PWM_on();
-	PWM_State = PWM_SMStart;
+//	TimerOn();
+	Toggle_State = Toggle_SMStart;
+	Scale_State = Scale_SMStart;
 
     while (1) {
-	Tick_PWM();
+	Tick_Toggle();
+	Tick_Scale();
 //	while(!TimerFlag);
 //	TimerFlag = 0;
     }
