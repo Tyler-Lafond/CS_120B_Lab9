@@ -10,14 +10,14 @@
 #include <avr/io.h>
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
-//#include "timer.h"
+#include "timer.h"
 #endif
 
 double frequency;
 unsigned char i;
 unsigned char pos = 0;
 double melody[12] = { 329.63, 261.63, 392.00, 440.00, 523.25, 0, 329.63, 293.66, 349.23, 440.00, 523.25, 392.00 };
-unsigned char space[12] = { 5, 4, 2, 2, 6, 10, 2, 2, 2, 4, 4, 7 };
+unsigned char space[12] = { 50, 40, 20, 20, 60, 100, 20, 20, 20, 40, 40, 70 };
 
 enum PWM_States { PWM_SMStart, PWM_OffUnpress, PWM_Melody, PWM_OffPress } PWM_State;
 
@@ -141,15 +141,15 @@ int main(void) {
 	DDRA = 0x00; PORTA = 0xFF;
 	DDRB = 0xFF; PORTB = 0x00;
     /* Insert your solution below */
-//	TimerSet(100);
+	TimerSet(10);
 	PWM_on();
-//	TimerOn();
+	TimerOn();
 	PWM_State = PWM_SMStart;
 
     while (1) {
 	Tick_PWM();
-//	while(!TimerFlag);
-//	TimerFlag = 0;
+	while(!TimerFlag);
+	TimerFlag = 0;
     }
     return 1;
 }
