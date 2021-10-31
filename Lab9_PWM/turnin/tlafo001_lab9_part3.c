@@ -10,7 +10,7 @@
 #include <avr/io.h>
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
-#include "timer.h"
+//#include "timer.h"
 #endif
 
 double frequency;
@@ -141,15 +141,15 @@ int main(void) {
 	DDRA = 0x00; PORTA = 0xFF;
 	DDRB = 0xFF; PORTB = 0x00;
     /* Insert your solution below */
-	TimerSet(100);
+//	TimerSet(100);
 	PWM_on();
-	TimerOn();
+//	TimerOn();
 	PWM_State = PWM_SMStart;
 
     while (1) {
 	Tick_PWM();
-	while(!TimerFlag);
-	TimerFlag = 0;
+//	while(!TimerFlag);
+//	TimerFlag = 0;
     }
     return 1;
 }
