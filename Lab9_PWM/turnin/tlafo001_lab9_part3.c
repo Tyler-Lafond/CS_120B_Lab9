@@ -17,7 +17,7 @@ double frequency;
 unsigned char i;
 unsigned char pos = 0;
 double melody[12] = { 329.63, 261.63, 392.00, 440.00, 523.25, 0, 329.63, 293.66, 349.23, 440.00, 523.25, 392.00 };
-unsigned char space[12] = { 10, 8, 4, 4, 12, 20, 4, 4, 4, 8, 8, 14 };
+unsigned char space[12] = { 5, 4, 2, 2, 6, 10, 2, 2, 2, 4, 4, 7 };
 
 enum PWM_States { PWM_SMStart, PWM_OffUnpress, PWM_Melody, PWM_OffPress } PWM_State;
 
@@ -141,7 +141,7 @@ int main(void) {
 	DDRA = 0x00; PORTA = 0xFF;
 	DDRB = 0xFF; PORTB = 0x00;
     /* Insert your solution below */
-	TimerSet(50);
+	TimerSet(100);
 	PWM_on();
 	TimerOn();
 	PWM_State = PWM_SMStart;
