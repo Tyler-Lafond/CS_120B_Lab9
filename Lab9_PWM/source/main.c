@@ -1,7 +1,7 @@
 /*	Author: tlafo001
  *  Partner(s) Name: 
  *	Lab Section: 022
- *	Assignment: Lab # 9  Exercise # 2
+ *	Assignment: Lab # 9  Exercise # 3
  *	Exercise Description: [optional - include for your own benefit]
  *
  *	I acknowledge all content contained herein, excluding template or example
@@ -14,11 +14,12 @@
 #endif
 
 double frequency;
+unsigned char i;
 unsigned char pos = 0;
-double notes[8] = { 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25 };
+double melody[12] = { 261.63, 293.66, 329.63, 349.23, 392.00, 0, 440.00, 493.88, 523.25 };
+unsigned char space[12] = { 5, 4, 2, 2, 6, 10, 2, 2, 2, 4, 4, 7 };
 
-
-enum PWM_States { Toggle_SMStart, Toggle_OffUnpress, Toggle_On, Toggle_OffPress } Toggle_State;
+enum PWM_States { PWM_SMStart, PWM_OffUnpress, PWM_Melody, PWM_OffPress } PWM_State;
 
 // 0.954 hz is lowest frequency possible with this function,
 // based on settings in PWM_on()
@@ -61,123 +62,74 @@ void PWM_off() {
 	TCCR3B = 0x00;
 }
 
-void Tick_Toggle() {
-	switch(Toggle_State) {
-		case Toggle_SMStart:
+void Tick_PWM() {
+	switch(PWM_State) {
+		case PWM_SMStart:
 			set_PWM(0);
-			Toggle_State = Toggle_OffUnpress;
+			PWM_State = PWM_OffUnpress;
 			break;
-		case Toggle_OffUnpress:
+		case PWM_OffUnpress:
 			if ((PINA & 0x01) == 0x00)
 			{
-				Toggle_State = Toggle_OnPress;
-			}
-			else if ((PINA & 0x01) == 1)
-			{
-				Toggle_State = Toggle_OffUnpress;
-			}
-			break;
-		case Toggle_OnPress:
-			if ((PINA & 0x01) == 0x01)
-			{
-				Toggle_State = Toggle_OnUnpress;
-			}
-			else if ((PINA & 0x01) == 0x00)
-			{
-				Toggle_State = Toggle_OnPress;
-			}
-			break;
-		case Toggle_OnUnpress:
-			if ((PINA & 0x01) == 0x00)
-			{
-				Toggle_State = Toggle_OffPress;
+				pos = 0;
+				i = 0;
+				PWM_State = PWM_Melody;
 			}
 			else if ((PINA & 0x01) == 0x01)
 			{
-				Toggle_State = Toggle_OnUnpress;
+				PWM_State = PWM_OffUnpress;
 			}
 			break;
-		case Toggle_OffPress:
+		case PWM_Melody:
+			if ((pos == 11) && (i == space[pos]))
+			{
+				if ((PINA & 0x01) == 0x01)
+				{
+					PWM_State = PWM_OffUnpress;
+				}
+				else if ((PINA & 0x01) == 0x00)
+				{
+					PWM_State = PWM_OffPress;
+				}
+			}
+			else if (i == space[pos])
+			{
+				i = 0;
+				pos++;
+				frequency = melody[pos];
+				PWM_State = PWM_Melody;
+			}
+			else if (i < space[pos])
+			{
+				i++;
+				frequency = melody[pos];
+				PWM_State = PWM_Melody;
+			}
+			break;
+		case PWM_OffPress:
 			if ((PINA & 0x01) == 0x01)
 			{
-				Toggle_State = Toggle_OffUnpress;
+				PWM_State = PWM_OffUnpress;
 			}
 			else if ((PINA & 0x01) == 0x00)
 			{
-				Toggle_State = Toggle_OffPress;
+				PWM_State = PWM_OffPress;
 			}
 			break;
 		default:
-			Toggle_State = Toggle_SMStart;
+			PWM_State = PWM_SMStart;
 			break;
 	}
 
-	switch(Toggle_State) {
-		case Toggle_OffUnpress:
+	switch(PWM_State) {
+		case PWM_OffUnpress:
 			set_PWM(0);
 			break;
-		case Toggle_OnPress:
-			set_PWM(frequency);
-			break;
-		case Toggle_OnUnpress:
+		case PWM_Melody:
 			set_PWM(frequency);
 			break;
 		case Toggle_OffPress:
 			set_PWM(0);
-			break;
-		default:
-			break;
-	}
-}
-void Tick_Scale() {
-	switch(Scale_State) {
-		case Scale_SMStart:
-			frequency = notes[pos];
-			Scale_State = Scale_Neutral;
-			break;
-		case Scale_Neutral:
-			if ((PINA & 0x06) == 0x04)
-			{
-				if (pos > 0)
-				{
-					pos--;;
-				}
-				frequency = notes[pos];
-				Scale_State = Scale_Change;
-			}
-			else if ((PINA & 0x06) == 0x02)
-			{
-				if (pos < 7)
-				{
-					pos++;
-				}
-				frequency = notes[pos];
-				Scale_State = Scale_Change;
-			}
-			else if (((PINA & 0x06) == 0x00) || ((PINA & 0x06) == 0x06))
-			{
-				Scale_State = Scale_Neutral;
-			}
-			break;
-		case Scale_Change:
-			if ((PINA & 0x06) == 0x06)
-			{
-				Scale_State = Scale_Neutral;
-			}
-			else if (!((PINA & 0x06) == 0x06))
-			{
-				Scale_State = Scale_Change;
-			}
-			break;
-		default:
-			Scale_State = Scale_SMStart;
-			break;
-	}
-
-	switch(Scale_State) {
-		case Scale_Neutral:
-			break;
-		case Scale_Change:
 			break;
 		default:
 			break;
@@ -192,12 +144,10 @@ int main(void) {
 	TimerSet(100);
 	PWM_on();
 	TimerOn();
-	Toggle_State = Toggle_SMStart;
-	Scale_State = Scale_SMStart;
+	PWM_State = PWM_SMStart;
 
     while (1) {
-	Tick_Toggle();
-	Tick_Scale();
+	Tick_PWM();
 	while(!TimerFlag);
 	TimerFlag = 0;
     }
